@@ -63,10 +63,10 @@ router.get('/books/search', async (req, res) =>{
     let q = req.query.q;
     let reg = new RegExp(`\b${q}\b`, 'i')
     let regexp = pattern(q);
-    let resp = await Authors.find({name: reg}).select({name:1, books:1}).populate({path: 'books', select: exclude, populate:{path: 'authors', select: 'name id'} });
+    let resp = await Authors.find({name: reg}).select({name:1, books:1}).populate({path: 'books', select: exclude, populate:{path: 'authors', select: 'name id imageUrl'} });
 
     let results = await Books.find({$or:[{title: regexp}, {summary: regexp}, {genres: {$in:[regexp]}}]})
-                               .select(exclude).limit(10).populate('reviews').populate({path: 'authors', select: 'name id'});
+                               .select(exclude).limit(10).populate('reviews').populate({path: 'authors', select: 'name id imageUrl'});
 
     results = results.map(async i => await result(i));
     results = await Promise.all(results);
@@ -180,12 +180,12 @@ router.get('/books/:branch', async (req, res) =>{
 
 router.get('/search', async (req, res) => {
     try {
-        let exclude = {similar: 0, fileSize:0, imageUrl:0, year:0}
+        let include = {title: 1, name:1}
         let q = req.query.q;
         let regexp = pattern(q);
-        const author = await Authors.find({name: regexp}).limit(10).lean();
+        const author = await Authors.find({name: regexp}).select(include).limit(10).lean();
         let book = await Books.find({$or:[{title: regexp}, {summary: regexp}, {genres: {$in:[regexp]}}]})
-            .select(exclude).limit(10).lean();
+            .select(include).limit(10).lean();
 
         let result = {authors: author, books: book}
         res.status(200).json({data: result, msg: "Action Successful", status: true});
