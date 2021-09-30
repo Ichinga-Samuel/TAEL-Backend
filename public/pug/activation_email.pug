@@ -1,0 +1,17 @@
+extends email
+
+block content
+  tbody
+    tr
+      td(style='text-transform: capitalize') hello #{name} welcome to the African Ebook Library
+
+    tr
+      td Click the button below to activate your account
+
+    tr
+      td(style='padding-left: 50px') #[button(type='submit' style='background-color: #F80; border-radius: 10%; width:80px; height:30px') #[a(href=`${link}` style='text-decoration: none') Activate]]
+
+    tr
+      td If the button is not working copy the link below to activate your account
+    tr
+      td=link

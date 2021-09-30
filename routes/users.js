@@ -1,19 +1,26 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const Users = require('../models/Users');
+const {emailService} = require('../utils/messanger')
 
 
 const router = express.Router();
+const {JWT_SECRET} = process.env
 
 router.post('/create', async (req, res, next) => {
-  let fields = {'name': 1, 'email': 1, 'fave': 1, 'reviews': 1, 'id': 1}
   try {
-    let user = new Users();
+    let user = new Users()
     user.setPassword(req.body.password);
     delete req.body.password;
-    user.set(req.body);
-    user = await user.save();
+    user.set(req.body)
+    await user.save()
     if (user) {
-      res.status(201).json({msg: 'Account Creation Was Successful', status: true})
+      let token = jwt.sign({id: user._id, from: req.get('From')}, JWT_SECRET)
+      let body = {data: {link: `${req.protocol}://${req.headers.host}/users/activate/${token}`, name: req.body.name,
+          title: 'Account Activation'}, subject: 'Account Verification', type: 'activation', recipient: req.body.email}
+      let mail = new emailService()
+      let resp = await mail.send(body)
+      res.status(201).json({msg: 'Account Creation Was Successful Check your Email to Activate your Account', status: true})
     }
   }
   catch(e){
@@ -33,22 +40,70 @@ router.get('/validate_email/:email', async (req, res) => {
   catch (e) {
     res.json({status: false, msg: 'Unable to validate email at the moment'})
   }
+});
 
+router.get('/activate/:token', async (req, res) =>{
+  try{
+    let token = req.params['token'];
+    let data = jwt.verify(token, JWT_SECRET)
+    await Users.findByIdAndUpdate(data.id, {verified: true})
+    res.redirect(data.from)
+  }
+  catch(e){
+    res.status(500).send('Something Went Wrong')
+  }
+})
+
+router.post('/reset_password', async (req, res) => {
+  try{
+    let user = await Users.findOne({email: req.body.email}, 'email name')
+    if(user.email){
+      let token = jwt.sign({email: user.email}, JWT_SECRET, {expiresIn: "6h"})
+      let body = {data: {link: `${req.get('From')}/reset_password/${token}`, name: user.name, title: 'Password Reset'},
+        recipient: user.email, subject: "Password Reset", type: 'pwd_reset'}
+      let mailer = new emailService()
+      let resp = await mailer.send(body)
+      res.status(200).json({msg: "A Password Reset Link Has Been Sent to Your Email Address", status: true})
+    }
+    else{
+      res.status(200).json({msg: 'No User With this Email Address Try Again', status: false})
+    }
+  }
+  catch (e) {
+    res.status(502).json({msg: "Something Went Wrong", status: false})
+  }
+})
+
+router.post('/change_password', async (req, res) => {
+  try {
+    let email = jwt.verify(req.body.token, JWT_SECRET).email;
+    let user = await Users.findOne({email: email}, 'email');
+    let pwd = req.body.password;
+    user.setPassword(pwd)
+    await user.save()
+    res.status(200).json({msg: "Password Reset Successful", status: true})
+  }
+  catch (e) {
+   res.status(200).json({msg: "Password Reset Token has Expired Try Again", status: false})
+  }
 });
 
 router.post('/mark', async (req, res) => {
   try{
     let title = req.body.title;
-    let fields = {'name': 1, 'email': 1, 'fave': 1, 'reviews': 1, 'id': 1, favourites: 1};
-    let user = await Users.findById(req.body.uid).select(fields);
+    let fields = {'name': 1, 'email': 1, 'id': 1, favourites: 1};
+    let id = req.body.uid
+    let user = await Users.findById(id).select(fields);
+    let msg
     if(user.favourites.includes(title)){
-      user = await user.updateOne({$pull: {favourites: title}})
+      await Users.findByIdAndUpdate(id, {$pull: {favourites: title}})
+      msg = "Book Removed from Favourites"
     }else{
-      user = await user.updateOne({$addToSet: {favourites: title}})
+      await Users.findByIdAndUpdate(id, {$addToSet: {favourites: title}})
+      msg = "Book Added to Favourites"
     }
-    user = await user.save();
-    user = await user.populate({path: 'fave', select: {id: 1, title: 1, imageUrl: 1}}).populate('reviews').execPopulate();
-    res.status(200).json({user: user, msg: "Action Successful"})
+    user = await Users.findById(id).select(fields).populate({path: 'fave', select: {id: 1, title: 1, imageUrl: 1}}).populate('reviews');
+    res.status(200).json({user: user, msg: msg})
   }
   catch(e){
     res.status(500).json({msg: "Action Unsuccessful", status: false})

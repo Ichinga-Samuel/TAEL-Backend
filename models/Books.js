@@ -24,26 +24,11 @@ const BookSchema = new mongoose.Schema({
     },
     ratings: {
         type: mongoose.Mixed,
-        1:{
-            type: Number,
-            default: 1,
-        },
-        2:{
-            type: Number,
-            default: 1
-        },
-        3:{
-            type: Number,
-            default: 1,
-        },
-        4:{
-            type: Number,
-            default: 1,
-        },
-        5:{
-            type: Number,
-            default: 1,
-        },
+        1: Number,
+        2: Number,
+        3: Number,
+        4: Number,
+        5: Number,
         get: function(r){
             let items = Object.entries(r);
             let s = 0;
@@ -58,10 +43,12 @@ const BookSchema = new mongoose.Schema({
             if (!(this instanceof mongoose.Document)){
                 throw Error("Don't do this")
             }else{
+                if(r instanceof Object) {return r}
                 this.get('ratings', null, {getters: false})[r] = 1 + parseInt(this.get('ratings', null, {getters: false})[r])
                 return this.get('ratings', null, {getters: false})}
 
         },
+        default: {1:1, 2:2, 3:3, 4:4, 5:5}
     },
     authors: [{
         type: mongoose.Schema.Types.ObjectID,

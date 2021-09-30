@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node app"
+    "start": "node app",
+    "dev": "cross-env NODE_ENV=development nodemon app"
   },
   "dependencies": {
     "compression": "^1.7.4",
@@ -17,7 +18,12 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.13.3",
     "morgan": "~1.9.1",
-    "passport": "^0.4.1",
-    "passport-local": "^1.0.0"
+    "nodemailer": "^6.6.5",
+    "nodemailer-juice": "^1.0.1",
+    "pug": "^3.0.2"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "nodemon": "^2.0.13"
   }
 }

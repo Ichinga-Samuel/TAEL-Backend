@@ -157,7 +157,7 @@ router.get('/books/ratings', async (req, res) =>{
         let r = req.query['r'];
         let key = `ratings.${r}`
         let book = await Books.findByIdAndUpdate(id, {$inc:{[key]: 1}}, {new: true}).select(exclude).populate('reviews').populate({path: 'authors', select: 'name imageUrl id'});
-        book = result(book)
+        book = await result(book)
         res.status(200).json({data: book, msg: "Action Successful", status: true})
     }
     catch (e) {

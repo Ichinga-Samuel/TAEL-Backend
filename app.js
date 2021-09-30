@@ -1,7 +1,6 @@
 const createError = require('http-errors');
 const express = require('express');
 const dotenv = require('dotenv');
-const passport = require('passport');
 const cors = require('cors');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
@@ -17,10 +16,6 @@ const authRouter = require('./routes/auth');
 // Database Connection
 const connectDB = require('./config/db');
 
-// Authentication
-const {local} = require('./config/auth');
-local(passport);
-
 PORT = process.env.PORT || 5000;
 
 const app = express();
@@ -32,7 +27,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors({credentials: true}));
-app.use(passport.initialize());
 
 app.use('/users', usersRouter);
 app.use('/auth', authRouter);
