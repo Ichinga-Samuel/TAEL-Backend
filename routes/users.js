@@ -1,11 +1,10 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const Users = require('../models/Users');
 const {emailService} = require('../utils/messanger')
+const {encode, decode} = require("../utils/encrypt");
 
 
 const router = express.Router();
-const {JWT_SECRET} = process.env
 
 router.post('/create', async (req, res, next) => {
   try {
@@ -15,8 +14,9 @@ router.post('/create', async (req, res, next) => {
     user.set(req.body)
     await user.save()
     if (user) {
-      let token = jwt.sign({id: user._id, from: req.get('From')}, JWT_SECRET)
-      let body = {data: {link: `${req.protocol}://${req.headers.host}/users/activate/${token}`, name: req.body.name,
+      let token = await encode({id: user._id, from: req.get('From')})
+      let path = req.originalUrl.replace(req.path, '')
+      let body = {data: {link: `${req.protocol}://${req.headers.host}${path}/activate/${token}`, name: req.body.name,
           title: 'Account Activation'}, subject: 'Account Verification', type: 'activation', recipient: req.body.email}
       let mail = new emailService()
       let resp = await mail.send(body)
@@ -45,7 +45,7 @@ router.get('/validate_email/:email', async (req, res) => {
 router.get('/activate/:token', async (req, res) =>{
   try{
     let token = req.params['token'];
-    let data = jwt.verify(token, JWT_SECRET)
+    let data = await decode(token)
     await Users.findByIdAndUpdate(data.id, {verified: true})
     res.redirect(data.from)
   }
@@ -58,7 +58,7 @@ router.post('/reset_password', async (req, res) => {
   try{
     let user = await Users.findOne({email: req.body.email}, 'email name')
     if(user.email){
-      let token = jwt.sign({email: user.email}, JWT_SECRET, {expiresIn: "6h"})
+      let token = await encode({email: user.email}, {expiresIn: "2h"})
       let body = {data: {link: `${req.get('From')}/reset_password/${token}`, name: user.name, title: 'Password Reset'},
         recipient: user.email, subject: "Password Reset", type: 'pwd_reset'}
       let mailer = new emailService()
@@ -76,8 +76,8 @@ router.post('/reset_password', async (req, res) => {
 
 router.post('/change_password', async (req, res) => {
   try {
-    let email = jwt.verify(req.body.token, JWT_SECRET).email;
-    let user = await Users.findOne({email: email}, 'email');
+    let data = await decode(req.body.token);
+    let user = await Users.findOne({email: data.email}, 'email');
     let pwd = req.body.password;
     user.setPassword(pwd)
     await user.save()
@@ -91,23 +91,27 @@ router.post('/change_password', async (req, res) => {
 router.post('/mark', async (req, res) => {
   try{
     let title = req.body.title;
-    let fields = {'name': 1, 'email': 1, 'id': 1, favourites: 1};
     let id = req.body.uid
-    let user = await Users.findById(id).select(fields);
+    let action = req.body.action
     let msg
-    if(user.favourites.includes(title)){
-      await Users.findByIdAndUpdate(id, {$pull: {favourites: title}})
+    if(action === 'pull'){
+      await Users.findByIdAndUpdate(id, {$pull: {favourites: title}, new: true})
       msg = "Book Removed from Favourites"
-    }else{
-      await Users.findByIdAndUpdate(id, {$addToSet: {favourites: title}})
+    }
+    else if(action==='add') {
+      await Users.findByIdAndUpdate(id, {$addToSet: {favourites: title}, new: true})
       msg = "Book Added to Favourites"
     }
-    user = await Users.findById(id).select(fields).populate({path: 'fave', select: {id: 1, title: 1, imageUrl: 1}}).populate('reviews');
-    res.status(200).json({user: user, msg: msg})
+    let user = await Users.findById(id).populate({path: 'fave', select: {id: 1, title: 1, imageUrl: 1}})
+    res.status(200).json({fave: user.fave, msg: msg})
   }
   catch(e){
     res.status(500).json({msg: "Action Unsuccessful", status: false})
   }
 });
 
+router.get('/test', (req, res) => {
+  console.log(req.path, req.originalUrl)
+  res.json({m: 'dd'})
+})
 module.exports = router;

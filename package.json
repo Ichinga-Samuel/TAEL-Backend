@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node app",
-    "dev": "cross-env NODE_ENV=development nodemon app"
+    "start": "node server",
+    "dev": "cross-env NODE_ENV=development nodemon server"
   },
   "dependencies": {
     "compression": "^1.7.4",
@@ -18,6 +18,8 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.13.3",
     "morgan": "~1.9.1",
+    "multer": "^1.4.3",
+    "multer-google-storage": "^1.3.0",
     "nodemailer": "^6.6.5",
     "nodemailer-juice": "^1.0.1",
     "pug": "^3.0.2"

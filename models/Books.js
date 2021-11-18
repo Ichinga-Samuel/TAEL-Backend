@@ -44,6 +44,8 @@ const BookSchema = new mongoose.Schema({
                 throw Error("Don't do this")
             }else{
                 if(r instanceof Object) {return r}
+                let rr = parseInt(r)
+                if(isNaN(rr) || rr<1 || rr>5) throw Error('Invalid Value')
                 this.get('ratings', null, {getters: false})[r] = 1 + parseInt(this.get('ratings', null, {getters: false})[r])
                 return this.get('ratings', null, {getters: false})}
 
@@ -60,12 +62,7 @@ const BookSchema = new mongoose.Schema({
     }
 }, {timestamps: true, toObject: {virtuals: true, getters: true}, toJSON:{virtuals: true, getters:true}});
 
-// BookSchema.plugin(asmon);
-BookSchema.pre('find', {document: true, query:false}, function () {
-    process.stdout.write('hey')
-    // this.boy = await this.getSimilar()
 
-})
 BookSchema.virtual('reviews', {
     ref: "Review",
     localField: "title",

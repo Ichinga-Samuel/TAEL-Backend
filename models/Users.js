@@ -42,6 +42,14 @@ UserSchema.virtual('fave', {
     options:{sort: {title: 1}}
 });
 
+UserSchema.virtual('blogs', {
+    ref: "Blogs",
+    localField: "favourites",
+    foreignField: "title",
+    justOne: false,
+    options:{sort: {title: 1}}
+});
+
 UserSchema.methods.setPassword = function(pwd){
     this.password.salt = crypto.randomBytes(32).toString('hex');
     this.password.hash = crypto.pbkdf2Sync(pwd, this.password.salt, 10000, 64, "sha512").toString('hex');

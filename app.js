@@ -28,9 +28,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors({credentials: true}));
 
-app.use('/users', usersRouter);
-app.use('/auth', authRouter);
-app.use('/api', apiRouter);
+app.use('/api/v1/users', usersRouter);
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1', apiRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -50,8 +50,5 @@ app.use(function(err, req, res, next) {
   res.locals.error = req.app.get('env') === 'development' ? err : {};
   res.status(err.status || 500).json({msg:err.message, status: false});
 });
-
-
-app.listen(PORT, () => console.log(`Server running in ${app.get('env')} mode on ${PORT}`));
 
 module.exports = app;
